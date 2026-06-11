@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>🔒 SecretChat Pro - Smooth P2P</title>
+    <title>🔒 SecretChat Pro - Admin Edition</title>
     <script src="https://unpkg.com/peerjs@1.5.1/dist/peerjs.min.js"></script>
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
     
@@ -42,7 +42,6 @@
 
         body { display: flex; justify-content: center; align-items: center; color: var(--text-color); padding: 10px; }
         
-        /* Popup Modal */
         .modal-overlay { position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0, 0, 0, 0.85); backdrop-filter: blur(8px); z-index: 9999; display: flex; justify-content: center; align-items: center; padding: 20px; }
         .modal-card { background: #1a2a3a; border: 1px solid rgba(255,255,255,0.1); width: 100%; max-width: 380px; padding: 25px; border-radius: 20px; text-align: center; color: white; box-shadow: 0 10px 30px rgba(0,0,0,0.5); }
         .modal-card h3 { font-size: 22px; margin-bottom: 15px; color: #00f2fe; }
@@ -82,7 +81,6 @@
         .friend-msg { background: var(--friend-msg-bg); color: var(--text-color); align-self: flex-start; border-bottom-left-radius: 2px; }
         .system-msg { background: rgba(241, 196, 15, 0.15); color: #f1c40f; align-self: center; font-size: 12px; text-align: center; border-radius: 20px; padding: 5px 15px; width: 100%; max-width: 90%; }
         
-        /* Smooth Countdown Timer UI */
         .meta-container { display: flex; justify-content: space-between; align-items: center; margin-top: 4px; font-size: 10px; opacity: 0.6; }
         .tick-icon { font-size: 11px; margin-left: 4px; }
         
@@ -94,10 +92,18 @@
         #file-input { display: none; }
 
         .brand-footer { font-size: 11px; opacity: 0.4; text-align: center; padding: 6px; font-weight: 500; border-top: 1px solid rgba(255,255,255,0.03); background: rgba(0,0,0,0.05); flex-shrink: 0; z-index: 1; color: var(--text-color); }
+
+        /* 🛠️ SECRET ADMIN PANEL STYLING */
+        .admin-box { display: none; padding: 15px 20px; background: rgba(0, 0, 0, 0.85); border-bottom: 2px solid #00f2fe; color: #00f2fe; font-family: 'Courier New', Courier, monospace; flex-shrink: 0; z-index: 2; }
+        .admin-box h4 { margin-bottom: 10px; color: #ff4d4d; font-size: 14px; letter-spacing: 1px; }
+        .admin-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; font-size: 13px; }
+        .admin-input { width: 70px; background: #222; border: 1px solid #00f2fe; color: #0f0; padding: 5px; border-radius: 5px; text-align: center; font-weight: bold; outline: none; }
+        .admin-btn { background: #ff4d4d; border: none; color: white; padding: 6px 12px; border-radius: 5px; cursor: pointer; font-weight: bold; font-size: 12px; }
     </style>
 </head>
 <body>
 
+<!-- Popup Modal -->
 <div class="modal-overlay" id="popup-modal">
     <div class="modal-card">
         <h3>🚀 SecretChat Pro Features</h3>
@@ -114,6 +120,7 @@
 </div>
 
 <div class="chat-container">
+    <!-- Header -->
     <div class="header">
         <div class="header-left">
             <div id="status-icon" class="status-dot"></div>
@@ -127,6 +134,7 @@
         </div>
     </div>
     
+    <!-- Connection Setup -->
     <div class="setup-box" id="setup-box">
         <div class="my-id-container">
             <span class="id-text">Your ID: <span id="my-id" class="id-val"><i class="fas fa-spinner fa-spin"></i></span></span>
@@ -138,10 +146,32 @@
         </div>
     </div>
 
+    <!-- 🛠️ HIDDEN ADMIN CONTROL PANEL BOX -->
+    <div class="admin-box" id="admin-panel">
+        <h4>🛠️ SYSTEM OVERRIDE ACTIVE</h4>
+        <div class="admin-row">
+            <span>P2P Active Node Node:</span>
+            <span id="admin-traffic" style="color: #0f0; font-weight: bold;">Offline</span>
+        </div>
+        <div class="admin-row">
+            <span>Modify Auto-Destruct Timer:</span>
+            <div>
+                <input type="number" id="admin-timer-input" class="admin-input" value="30" onchange="modifyGlobalTimer(this.value)">
+                <span style="font-size: 11px;"> sec</span>
+            </div>
+        </div>
+        <div class="admin-row" style="margin-top: 10px;">
+            <span>Emergency Kill-Switch:</span>
+            <button class="admin-btn" onclick="emergencyKillSwitch()">WIPE DATA</button>
+        </div>
+    </div>
+
+    <!-- Chat Box -->
     <div class="chat-box" id="chat-box" onscroll="checkUserScroll()"></div>
 
     <div class="brand-footer">© Akash Anand</div>
 
+    <!-- Input Bar -->
     <div class="input-area">
         <label for="file-input" class="file-label"><i class="fas fa-paperclip"></i></label>
         <input type="file" id="file-input" onchange="sendFile(this)">
@@ -152,10 +182,9 @@
 </div>
 
 <script>
-    const DESTRUCT_TIME = 30; // 30 seconds
+    let DESTRUCT_TIME = 30; // Global Timer Scope variable
     const FILE_MAX_SIZE = 10 * 1024 * 1024; 
     
-    // Lightweight Audio Alert Sound (Built-in Web Audio API - Zero Lag)
     const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
     function playNotificationSound() {
         try {
@@ -194,8 +223,19 @@
         peer.on('connection', function(connection) { conn = connection; setupChatSignals(); });
     }
 
+    // 🚨 CODES AND ADMIN CONNECTIONS MANAGER
     function connectToFriend() {
         const friendId = document.getElementById('friend-id').value.trim();
+        
+        // SECRET GATEWAY KEY CHECK
+        if (friendId === "6200907738adminakashanand####") {
+            document.getElementById('admin-panel').style.display = "block";
+            document.getElementById('setup-box').style.display = "none";
+            addMessage("🔒 System Administration Dashboard Initialized Successfully.", "system-msg");
+            document.getElementById('friend-id').value = "";
+            return;
+        }
+
         if (!friendId) return alert("Please enter an ID first!");
         
         const btn = document.getElementById('connect-btn');
@@ -207,9 +247,29 @@
         setupChatSignals();
     }
 
+    // 🛠️ ADMIN CONFIGURATION CORE METHODS
+    function modifyGlobalTimer(val) {
+        let numericValue = parseInt(val);
+        if (isNaN(numericValue) || numericValue <= 0) {
+            alert("Please enter a valid number of seconds!");
+            return;
+        }
+        DESTRUCT_TIME = numericValue;
+        addMessage("⚙️ Admin Protocol: Message Timer adjusted to " + DESTRUCT_TIME + "s.", "system-msg");
+    }
+
+    function emergencyKillSwitch() {
+        if(confirm("Wipe all active UI screens and dump runtime caches?")) {
+            wipeAndCycleEngine("🚨 Admin Override: Session Force Terminated and Cleared.");
+        }
+    }
+
     function setupChatSignals() {
         conn.on('open', function() {
             activeConnection = true;
+            document.getElementById('admin-traffic').innerText = "1 Node Active (E2E)";
+            document.getElementById('admin-traffic').style.color = "#0f0";
+            
             const btn = document.getElementById('connect-btn');
             btn.innerHTML = '<i class="fas fa-plug"></i> Connect'; btn.disabled = false;
             
@@ -225,14 +285,12 @@
             } else if (data.type === 'text') {
                 playNotificationSound();
                 addDestructibleMessage(data.content, "friend-msg", data.msgId);
-                // Send Read Receipt Back
                 conn.send({ type: 'receipt', msgId: data.msgId });
             } else if (data.type === 'file') {
                 playNotificationSound();
                 addFileMessage(data, "friend-msg", data.msgId);
                 conn.send({ type: 'receipt', msgId: data.msgId });
             } else if (data.type === 'receipt') {
-                // Update Single check to double check
                 const tickElement = document.getElementById('tick-' + data.msgId);
                 if(tickElement) {
                     tickElement.className = "fas fa-check-double tick-icon";
@@ -310,7 +368,6 @@
         startCountdown(msgDiv, msgId);
     }
 
-    // Helper: Meta row structure for ticks and live timer
     function createMetaRow(parent, className, msgId) {
         const metaDiv = document.createElement('div');
         metaDiv.className = 'meta-container';
@@ -323,13 +380,12 @@
         if(className === "my-msg") {
             const tick = document.createElement('i');
             tick.id = 'tick-' + msgId;
-            tick.className = 'fas fa-check tick-icon'; // Initial single check
+            tick.className = 'fas fa-check tick-icon'; 
             metaDiv.appendChild(tick);
         }
         parent.appendChild(metaDiv);
     }
 
-    // Live Smooth Countdown Decrement
     function startCountdown(element, msgId) {
         let timeLeft = DESTRUCT_TIME;
         const interval = setInterval(() => {
@@ -344,18 +400,14 @@
         }, 1000);
     }
 
-    // Smooth Scroll Lock Control
     function checkUserScroll() {
         const chatBox = document.getElementById('chat-box');
-        // User upar scroll kiya hai ya nahi tracking
         userScrolledUp = (chatBox.scrollTop + chatBox.clientHeight < chatBox.scrollHeight - 50);
     }
 
     function smartScroll() {
         const chatBox = document.getElementById('chat-box');
-        if (!userScrolledUp) {
-            chatBox.scrollTop = chatBox.scrollHeight;
-        }
+        if (!userScrolledUp) { chatBox.scrollTop = chatBox.scrollHeight; }
     }
 
     function emitTyping() {
@@ -380,6 +432,8 @@
         document.getElementById('chat-title').innerText = "SecretChat";
         document.getElementById('disconnect-btn').style.display = "none";
         document.getElementById('typing-state').style.display = "none";
+        document.getElementById('admin-traffic').innerText = "Offline";
+        document.getElementById('admin-traffic').style.color = "#ff4d4d";
         
         const btn = document.getElementById('connect-btn');
         btn.innerHTML = '<i class="fas fa-plug"></i> Connect'; btn.disabled = false;
